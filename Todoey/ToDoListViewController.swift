@@ -15,7 +15,8 @@ class ToDoListViewController: UITableViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
     }
-    
+    // Das ist doch alles Blablabla
+    let my newVar = 0
     
     //MARK: - TableView Datasource Methods
     
