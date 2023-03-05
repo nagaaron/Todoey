@@ -17,6 +17,8 @@ class ToDoListViewController: UITableViewController {
     }
     
     
+    //MARK: - TableView Datasource Methods
+    
     override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
         itemArray.count
     }
@@ -25,7 +27,12 @@ class ToDoListViewController: UITableViewController {
     // function gets called for every message in message.count from function above
     override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         
+        let message = itemArray[indexPath.row]
+        
         let cell = tableView.dequeueReusableCell(withIdentifier: K.cellIdentifier, for: indexPath)
+        
+        cell.textLabel!.text = message
+        
         return cell
     }
 
