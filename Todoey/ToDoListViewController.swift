@@ -11,9 +11,19 @@ import UIKit
 class ToDoListViewController: UITableViewController {
     
     var itemArray = ["Watch Ben Francis Video", "Buy Stocks for Matilda", "Clean Up Folder Structure"]
+    
+    // defaults store defined data when your app closes
+    // only use small amounts of data as defaults are prone for hacking
+    // UserDefaults.standard is a singleton -> there is only one defaults across all classes and objects
+    let defaults = UserDefaults.standard
+    
 
     override func viewDidLoad() {
         super.viewDidLoad()
+        
+        if let items = defaults.array(forKey: "ToDoListArray") as? [String] {
+            itemArray = items
+        }
     }
     
     //MARK: - TableView Datasource Methods
@@ -46,7 +56,7 @@ class ToDoListViewController: UITableViewController {
         // unselects the clicked cell after 0.2 msecs
         tableView.deselectRow(at: indexPath, animated: true)
     }
-
+//MARK: - Section to add a new Item
     @IBAction func addButtonPressed(_ sender: UIBarButtonItem) {
         
         var textField = UITextField()
@@ -58,7 +68,9 @@ class ToDoListViewController: UITableViewController {
         // defines a new action variable
         let action = UIAlertAction( title: "AddItem", style: .default) {(action) in
             self.itemArray.append(textField.text!)
+            self.defaults.set(self.itemArray,forKey: "ToDoListArray")
             self.tableView.reloadData()
+            
         }
         
         // adds a text field to the alert variable
