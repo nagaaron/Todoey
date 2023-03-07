@@ -10,26 +10,27 @@ import UIKit
 
 class ToDoListViewController: UITableViewController {
     
-    var itemArray = ["Watch Ben Francis Video", "Buy Stocks for Matilda", "Clean Up Folder Structure"]
+    var itemArray = [Item]()
+    
+    // sets a new Items.plist on local sandbox
+    
+    let dataFilePath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first?.appendingPathComponent("Items.plist")
     
     // defaults store defined data when your app closes
     // only use small amounts of data as defaults are prone for hacking
     // UserDefaults.standard is a singleton -> there is only one defaults across all classes and objects
-    let defaults = UserDefaults.standard
+    // UserDefauls doesn't support self made Data Types
+    //          let defaults = UserDefaults.standard
     
-
     override func viewDidLoad() {
         super.viewDidLoad()
-        
-        if let items = defaults.array(forKey: "ToDoListArray") as? [String] {
-            itemArray = items
-        }
+        loadItems()
     }
     
     //MARK: - TableView Datasource Methods
     
     override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        itemArray.count
+        return itemArray.count
     }
     
     // ? function does not need to be called as Object gets updated through implementation?
@@ -37,24 +38,21 @@ class ToDoListViewController: UITableViewController {
     override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         
         let message = itemArray[indexPath.row]
-        
         let cell = tableView.dequeueReusableCell(withIdentifier: K.cellIdentifier, for: indexPath)
-        
-        cell.textLabel!.text = message
-        
+        cell.textLabel!.text = message.body
+        //Ternary Operator if checked then uncheck, if unchecked then check
+        cell.accessoryType = message.isChecked ? .checkmark : .none
         return cell
+        
     }
     
     override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
-        
-        if tableView.cellForRow(at: indexPath)?.accessoryType == .checkmark {
-            tableView.cellForRow(at: indexPath)?.accessoryType = .none
-        } else {
-            tableView.cellForRow(at: indexPath)?.accessoryType = .checkmark
-        }
-        
+    
+        itemArray[indexPath.row].isChecked = !itemArray[indexPath.row].isChecked
+        saveItems()
         // unselects the clicked cell after 0.2 msecs
         tableView.deselectRow(at: indexPath, animated: true)
+        
     }
 //MARK: - Section to add a new Item
     @IBAction func addButtonPressed(_ sender: UIBarButtonItem) {
@@ -67,10 +65,11 @@ class ToDoListViewController: UITableViewController {
         
         // defines a new action variable
         let action = UIAlertAction( title: "AddItem", style: .default) {(action) in
-            self.itemArray.append(textField.text!)
-            self.defaults.set(self.itemArray,forKey: "ToDoListArray")
-            self.tableView.reloadData()
             
+            let context = (UIApplication.shared.delegate as! AppDelegate).persistentContainer.viewContext
+            let newItem = Item(context: context)
+            self.itemArray.append(newItem)
+            self.saveItems()
         }
         
         // adds a text field to the alert variable
@@ -85,6 +84,31 @@ class ToDoListViewController: UITableViewController {
         // presents the alert on screen
         present (alert,animated: true, completion: nil)
         
+    }
+    // function to encode
+    func saveItems() {
+        
+        let encoder = PropertyListEncoder()
+        
+        do {
+            let data = try encoder.encode(itemArray)
+            try data.write(to: dataFilePath!)
+        } catch {
+            print(error)
+        }
+        tableView.reloadData()
+    }
+    
+    // function to decode
+    func loadItems() {
+        if let data = try? Data(contentsOf: dataFilePath!) {
+            let decoder = PropertyListDecoder()
+            do {
+                itemArray = try decoder.decode([Item].self, from: data)
+            } catch {
+                print(error)
+            }
+        }
     }
 }
 
