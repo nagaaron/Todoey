@@ -13,12 +13,17 @@ class ToDoListViewController: UITableViewController {
     
     @IBOutlet weak var searchBar: UISearchBar!
     var itemArray = [Item]()
-    let dataFilePath = FileManager.default.urls(for: . documentDirectory, in: .userDomainMask)
+    
+    var selectedCategory: Category? {
+        didSet{
+            loadItems()
+        }
+    }
+    //let dataFilePath = FileManager.default.urls(for: . documentDirectory, in: .userDomainMask)
     let context = (UIApplication.shared.delegate as! AppDelegate).persistentContainer.viewContext
     
     
     // sets a new Items.plist on local sandbox
-    
     
     // defaults store defined data when your app closes
     // only use small amounts of data as defaults are prone for hacking
@@ -28,11 +33,11 @@ class ToDoListViewController: UITableViewController {
     
     override func viewDidLoad() {
         super.viewDidLoad()
-        searchBar.delegate = self
+        //searchBar.delegate = self
         loadItems()
     }
     
-    //MARK: - TableView Datasource Methods
+//MARK: - TableView Datasource Methods
     
     override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
         return itemArray.count
@@ -43,7 +48,7 @@ class ToDoListViewController: UITableViewController {
     override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         
         let message = itemArray[indexPath.row]
-        let cell = tableView.dequeueReusableCell(withIdentifier: K.cellIdentifier, for: indexPath)
+        let cell = tableView.dequeueReusableCell(withIdentifier: K.cellIdentifierItem, for: indexPath)
         cell.textLabel!.text = message.text
         //Ternary Operator if checked then uncheck, if unchecked then check
         cell.accessoryType = message.isChecked ? .checkmark : .none
@@ -59,7 +64,7 @@ class ToDoListViewController: UITableViewController {
         itemArray[indexPath.row].isChecked = !itemArray[indexPath.row].isChecked
         saveItems()
         // unselects the clicked cell after 0.2 msecs
-        tableView.deselectRow(at: indexPath, animated: true)
+        //tableView.deselectRow(at: indexPath, animated: true)
         
     }
 //MARK: - Section to add a new Item
@@ -78,6 +83,7 @@ class ToDoListViewController: UITableViewController {
             let newItem = Item(context: self.context)
             newItem.text = textField.text
             newItem.isChecked = false
+            newItem.parentCategory = self.selectedCategory
             self.itemArray.append(newItem)
             self.saveItems()
         }
@@ -105,7 +111,16 @@ class ToDoListViewController: UITableViewController {
     }
     
     // function load items from database with a default of loading all items
-    func loadItems(with request: NSFetchRequest<Item> = Item.fetchRequest()) {
+    func loadItems(with request: NSFetchRequest<Item> = Item.fetchRequest(), predicate: NSPredicate? = nil) {
+        
+        let categoryPredicate = NSPredicate(format: "parentCategory.cat MATCHES %@", self.selectedCategory!.cat!)
+        
+        if let additionalPredicate = predicate {
+            request.predicate = NSCompoundPredicate(andPredicateWithSubpredicates: [categoryPredicate,additionalPredicate])
+        } else {
+            request.predicate = categoryPredicate
+        }
+        
         do {
             itemArray  = try context.fetch(request)
         } catch {
