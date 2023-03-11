@@ -6,29 +6,28 @@
 //  Copyright © 2023 App Brewery. All rights reserved.
 //
 import UIKit
-import CoreData
+import RealmSwift
 
-class CategoryListViewController: UITableViewController {
-        
-
-    var categoryArray = [Category]()
-    let context = (UIApplication.shared.delegate as! AppDelegate).persistentContainer.viewContext
+class CategoryListViewController: UITableViewController{
     
+    let realm = try! Realm()
+    var categories: Results<Category>? = nil
+    let context = (UIApplication.shared.delegate as! AppDelegate).persistentContainer.viewContext
     override func viewDidLoad() {
+        loadDataFromRealm()
         super.viewDidLoad()
-        loadCategory()
     }
     //MARK: - TableView Datasource Methods
     
     override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        return categoryArray.count
+        return categories!.count
     }
     
     override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         
-        let category = categoryArray[indexPath.row]
+        let category = categories![indexPath.row]
         let cell = tableView.dequeueReusableCell(withIdentifier: K.cellIdentifierCategory, for: indexPath)
-        cell.textLabel!.text = category.cat
+        cell.textLabel!.text = category.name
         return cell
     }
     
@@ -39,10 +38,11 @@ class CategoryListViewController: UITableViewController {
     }
     
     override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
+        // support function to execute segue
         let destinationVC = segue.destination as! ToDoListViewController
         
         if let indexPath = tableView.indexPathForSelectedRow {
-            destinationVC.selectedCategory = categoryArray[indexPath.row]
+            destinationVC.selectedCategory = categories![indexPath.row]
         }
     }
     //MARK: - TableView Delegate Methods
@@ -50,10 +50,9 @@ class CategoryListViewController: UITableViewController {
         var textField = UITextField()
         let alert = UIAlertController(title: "Add New Category", message: "", preferredStyle: .alert)
         let action = UIAlertAction( title: "AddCategory", style: .default) {(action) in
-            let newCategory = Category(context: self.context)
-            newCategory.cat = textField.text!
-            self.categoryArray.append(newCategory)
-            self.saveCategory()
+            let newCategory = Category()
+            newCategory.name = textField.text!
+            self.saveToRealm(category: newCategory)
         }
         alert.addTextField {(alertTextField) in
             textField = alertTextField
@@ -61,24 +60,22 @@ class CategoryListViewController: UITableViewController {
         }
         alert.addAction(action)
         present (alert,animated: true, completion: nil)
+        loadDataFromRealm()
     }
     
-    func saveCategory() {
+    func saveToRealm(category: Category) {
             do {
-                try context.save()
+                try realm.write{
+                    realm.add(category)
+                }
             } catch {
                 print(error)
             }
             tableView.reloadData()
     }
-        
-    func loadCategory(with request: NSFetchRequest<Category> = Category.fetchRequest()) {
-        do {
-            categoryArray  = try context.fetch(request)
-        } catch {
-            print(error)
-        }
-        tableView.reloadData()
+    
+    func loadDataFromRealm () {
+        self.categories = realm.objects(Category.self)
     }
 }
 
