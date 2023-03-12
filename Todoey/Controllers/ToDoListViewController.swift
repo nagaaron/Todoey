@@ -7,100 +7,105 @@
 //
 
 import UIKit
-import CoreData
+import RealmSwift
 
 class ToDoListViewController: UITableViewController {
     
     @IBOutlet weak var searchBar: UISearchBar!
+    
     let realm = try! Realm()
-    var categories: Results<Item>? = nil
     
-    //let dataFilePath = FileManager.default.urls(for: . documentDirectory, in: .userDomainMask)
-    let context = (UIApplication.shared.delegate as! AppDelegate).persistentContainer.viewContext
+    var choosenCategoryItems: Results<Item>?
     
-    
-    // sets a new Items.plist on local sandbox
-    
-    // defaults store defined data when your app closes
-    // only use small amounts of data as defaults are prone for hacking
-    // UserDefaults.standard is a singleton -> there is only one defaults across all classes and objects
-    // UserDefauls doesn't support self made Data Types
-    //          let defaults = UserDefaults.standard
+    var selectedCategory:Category? {
+        didSet {
+            loadItems()
+        }
+    }
     
     override func viewDidLoad() {
         super.viewDidLoad()
         //searchBar.delegate = self
-//        loadItems()
+        loadItems()
     }
     
-//MARK: - TableView Datasource Methods
+    //MARK: - TableView Datasource Methods
     
     override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        return itemArray.count
+        return choosenCategoryItems?.count ?? 1
     }
     
-    // ? function does not need to be called as Object gets updated through implementation?
-    // function gets called for every message in message.count from function above
     override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-        
-        let message = itemArray[indexPath.row]
         let cell = tableView.dequeueReusableCell(withIdentifier: K.cellIdentifierItem, for: indexPath)
-        cell.textLabel!.text = message.text
-        //Ternary Operator if checked then uncheck, if unchecked then check
-        cell.accessoryType = message.isChecked ? .checkmark : .none
+        if let message = choosenCategoryItems?[indexPath.row] {
+            cell.textLabel!.text = message.text
+            cell.accessoryType = message.isChecked ? .checkmark : .none
+        } else {
+            cell.textLabel!.text = "No Items Added yet"
+        }
         return cell
-        
     }
     
     override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
-        //delete items per click
-        //context.delete(itemArray[indexPath.row])
-        //itemArray.remove(at: indexPath.row)
-        
-        itemArray[indexPath.row].isChecked = !itemArray[indexPath.row].isChecked
-//        saveItems()
-        // unselects the clicked cell after 0.2 msecs
-        //tableView.deselectRow(at: indexPath, animated: true)
+        let myItem = choosenCategoryItems![indexPath.row]
+        updateRealm(item: myItem)
         
     }
     //MARK: - Section to add a new Item
-        @IBAction func addButtonPressed(_ sender: UIBarButtonItem) {
-            
-            var textField = UITextField()
-            
-            // defines new alert variable
-            let alert = UIAlertController(title: "Add New Todoey Item", message: "", preferredStyle: .alert)
-            
-            
-            // defines a new action variable
-            let action = UIAlertAction( title: "AddItem", style: .default) {(action) in
-                
-                
-                //let newItem = Item(context: self.context)
-                //newItem.text = textField.text
-                //newItem.isChecked = false
-                //newItem.parentCategory = self.selectedCategory
-                //self.itemArray.append(newItem)
-                //self.saveItems()
-            }
-            
-            // adds a text field to the alert variable
-            alert.addTextField {(alertTextField) in
-                alertTextField.placeholder = "Create new item"
-                textField = alertTextField
+    @IBAction func addButtonPressed(_ sender: UIBarButtonItem) {
+        
+        var textField = UITextField()
+        
+        let alert = UIAlertController(title: "Add New Todoey Item", message: "", preferredStyle: .alert)
+        
+        let action = UIAlertAction( title: "AddItem", style: .default) {(action) in
+            let newItem = Item()
+            newItem.text = textField.text!
+            self.saveToRealm(item: newItem)
         }
-        
-        // adds action to alert
+        alert.addTextField {(alertTextField) in
+            alertTextField.placeholder = "Create new item"
+            textField = alertTextField
+        }
         alert.addAction(action)
-        
-        // presents the alert on screen
         present (alert,animated: true, completion: nil)
+        loadItems()
     }
-    // function to encode
-
+    
+    func saveToRealm(item: Item) {
+        do {
+            try self.realm.write {
+                realm.add(item)
+            }
+        }catch {
+            print(error)
+        }
+        tableView.reloadData()
+   }
+    
     
     // function load items from database with a default of loading all items
+    func loadItems() {
+        //let items = realm.objects(Item.self)
+        self.choosenCategoryItems =  realm.objects(Item.self)
 
+        //let items = realm.objects(Item.self)
+        //self.choosenCategoryItems = items.where {
+        //    $0.parentCategory == self.selectedCategory!
+        //}
+    }
+    
+    func updateRealm(item: Item) {
+        let item = realm.objects(Item.self).first!
+        do {
+            try self.realm.write {
+                item.isChecked = !item.isChecked
+                }
+            }catch {
+                print(error)
+            }
+        tableView.reloadData()
+        }
 }
 //MARK: - SearchBar Methods
 
@@ -142,11 +147,4 @@ class ToDoListViewController: UITableViewController {
 //}
 
 //
-//func saveItems() {
-//    do {
-//        try context.save()
-//    } catch {
-//        print(error)
-//    }
-//    tableView.reloadData()
-//}
+

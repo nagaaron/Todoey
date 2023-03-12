@@ -11,8 +11,7 @@ import RealmSwift
 class CategoryListViewController: UITableViewController{
     
     let realm = try! Realm()
-    var categories: Results<Category>? = nil
-    let context = (UIApplication.shared.delegate as! AppDelegate).persistentContainer.viewContext
+    var categories: Results<Category>?
     override func viewDidLoad() {
         loadDataFromRealm()
         super.viewDidLoad()
@@ -20,20 +19,16 @@ class CategoryListViewController: UITableViewController{
     //MARK: - TableView Datasource Methods
     
     override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        return categories!.count
+        return categories?.count ?? 1
     }
     
     override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-        
-        let category = categories![indexPath.row]
         let cell = tableView.dequeueReusableCell(withIdentifier: K.cellIdentifierCategory, for: indexPath)
-        cell.textLabel!.text = category.name
+        cell.textLabel?.text = categories?[indexPath.row].name ?? "No categories added yet"
         return cell
     }
     
     override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
-        //saveCategory()
-        //tableView.deselectRow(at: indexPath, animated: true)
         performSegue(withIdentifier: "goToItems", sender: self)
     }
     
@@ -64,18 +59,21 @@ class CategoryListViewController: UITableViewController{
     }
     
     func saveToRealm(category: Category) {
-            do {
-                try realm.write{
-                    realm.add(category)
-                }
-            } catch {
-                print(error)
+        do {
+            try realm.write{
+                realm.add(category)
             }
-            tableView.reloadData()
+        } catch {
+            print(error)
+        }
+        tableView.reloadData()
     }
     
     func loadDataFromRealm () {
         self.categories = realm.objects(Category.self)
     }
+    
+    
+    
 }
 
