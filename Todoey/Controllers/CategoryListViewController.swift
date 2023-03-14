@@ -8,13 +8,15 @@
 import UIKit
 import RealmSwift
 
-class CategoryListViewController: UITableViewController{
+class CategoryListViewController: SwipeTableViewController{
     
     let realm = try! Realm()
-    var categories: Results<Category>?
+    var categories: Results<Category1>?
     override func viewDidLoad() {
-        loadDataFromRealm()
         super.viewDidLoad()
+        loadDataFromRealm()
+        tableView.rowHeight = 80.0
+ 
     }
     //MARK: - TableView Datasource Methods
     
@@ -23,7 +25,10 @@ class CategoryListViewController: UITableViewController{
     }
     
     override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-        let cell = tableView.dequeueReusableCell(withIdentifier: K.cellIdentifierCategory, for: indexPath)
+        
+        //tab into superview func
+        let cell = super.tableView(tableView,cellForRowAt: indexPath)
+
         cell.textLabel?.text = categories?[indexPath.row].name ?? "No categories added yet"
         return cell
     }
@@ -45,7 +50,7 @@ class CategoryListViewController: UITableViewController{
         var textField = UITextField()
         let alert = UIAlertController(title: "Add New Category", message: "", preferredStyle: .alert)
         let action = UIAlertAction( title: "AddCategory", style: .default) {(action) in
-            let newCategory = Category()
+            let newCategory = Category1()
             newCategory.name = textField.text!
             self.saveToRealm(category: newCategory)
         }
@@ -58,7 +63,7 @@ class CategoryListViewController: UITableViewController{
         loadDataFromRealm()
     }
     
-    func saveToRealm(category: Category) {
+    func saveToRealm(category: Category1) {
         do {
             try realm.write{
                 realm.add(category)
@@ -70,10 +75,22 @@ class CategoryListViewController: UITableViewController{
     }
     
     func loadDataFromRealm () {
-        self.categories = realm.objects(Category.self)
+        self.categories = realm.objects(Category1.self)
     }
     
-    
-    
+    override func updateModel(at indexPath: IndexPath){
+        // function to refer to superview function
+        if let myCategory = self.categories?[indexPath.row] {
+            do {
+                try self.realm.write {
+                    self.realm.delete(myCategory)
+                    //tableView.reloadData()
+                }
+            } catch {
+                print(error)
+            }
+        }
+    }
 }
+
 

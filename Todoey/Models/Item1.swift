@@ -9,9 +9,10 @@
 import Foundation
 import RealmSwift
 
-class Item: Object {
+class Item1: Object {
     @Persisted var text: String
     @Persisted var isChecked: Bool
+    @Persisted var dateCreated: Date
     
-    var parentCategory = LinkingObjects(fromType: Category.self, property: "items")
+    var parentCategory = LinkingObjects(fromType: Category1.self, property: "items")
 }

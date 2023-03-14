@@ -9,7 +9,7 @@
 import Foundation
 import RealmSwift
 
-class Category: Object {
+class Category1: Object {
     @Persisted var name: String = ""
-    let items = List<Item>()
+    @Persisted var items = List<Item1>()
 }

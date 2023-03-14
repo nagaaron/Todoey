@@ -9,15 +9,15 @@
 import UIKit
 import RealmSwift
 
-class ToDoListViewController: UITableViewController {
+class ToDoListViewController: SwipeTableViewController {
     
     @IBOutlet weak var searchBar: UISearchBar!
     
-    let realm = try! Realm()
+    lazy var realm = try! Realm()
     
-    var choosenCategoryItems: Results<Item>?
+    var choosenCategoryItems: Results<Item1>?
     
-    var selectedCategory:Category? {
+    var selectedCategory:Category1? {
         didSet {
             loadItems()
         }
@@ -25,7 +25,7 @@ class ToDoListViewController: UITableViewController {
     
     override func viewDidLoad() {
         super.viewDidLoad()
-        //searchBar.delegate = self
+        searchBar.delegate = self
         loadItems()
     }
     
@@ -47,9 +47,17 @@ class ToDoListViewController: UITableViewController {
     }
     
     override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
-        let myItem = choosenCategoryItems![indexPath.row]
-        updateRealm(item: myItem)
-        
+        if let myItem = choosenCategoryItems?[indexPath.row] {
+            do {
+                try realm.write {
+                    //realm.delete(myItem)
+                    myItem.isChecked = !myItem.isChecked
+                }
+            } catch {
+                print(error)
+            }
+        }
+        tableView.reloadData()
     }
     //MARK: - Section to add a new Item
     @IBAction func addButtonPressed(_ sender: UIBarButtonItem) {
@@ -59,9 +67,20 @@ class ToDoListViewController: UITableViewController {
         let alert = UIAlertController(title: "Add New Todoey Item", message: "", preferredStyle: .alert)
         
         let action = UIAlertAction( title: "AddItem", style: .default) {(action) in
-            let newItem = Item()
-            newItem.text = textField.text!
-            self.saveToRealm(item: newItem)
+            
+            if let currentCategory = self.selectedCategory {
+                do {
+                    try self.realm.write{
+                        let newItem = Item1()
+                        newItem.text = textField.text!
+                        newItem.dateCreated = Date()
+                        currentCategory.items.append(newItem)
+                    }
+                } catch {
+                    print(error)
+                }
+            }
+            self.tableView.reloadData()
         }
         alert.addTextField {(alertTextField) in
             alertTextField.placeholder = "Create new item"
@@ -70,9 +89,10 @@ class ToDoListViewController: UITableViewController {
         alert.addAction(action)
         present (alert,animated: true, completion: nil)
         loadItems()
+        
     }
     
-    func saveToRealm(item: Item) {
+    func saveToRealm(item: Item1) {
         do {
             try self.realm.write {
                 realm.add(item)
@@ -81,70 +101,33 @@ class ToDoListViewController: UITableViewController {
             print(error)
         }
         tableView.reloadData()
-   }
-    
-    
-    // function load items from database with a default of loading all items
-    func loadItems() {
-        //let items = realm.objects(Item.self)
-        self.choosenCategoryItems =  realm.objects(Item.self)
-
-        //let items = realm.objects(Item.self)
-        //self.choosenCategoryItems = items.where {
-        //    $0.parentCategory == self.selectedCategory!
-        //}
     }
     
-    func updateRealm(item: Item) {
-        let item = realm.objects(Item.self).first!
-        do {
-            try self.realm.write {
-                item.isChecked = !item.isChecked
-                }
-            }catch {
-                print(error)
-            }
+    
+    func loadItems() {
+        choosenCategoryItems = selectedCategory?.items.sorted(byKeyPath: "dateCreated")
         tableView.reloadData()
-        }
+    }
 }
 //MARK: - SearchBar Methods
 
-//extension ToDoListViewController: UISearchBarDelegate {
-//    func searchBarSearchButtonClicked(_ searchBar: UISearchBar) {
-//        //let request: NSFetchRequest<Item> = Item.fetchRequest()
-//        //request.predicate = NSPredicate(format: "text CONTAINS[cd] %@", searchBar.text!)
-//        //request.sortDescriptors = [NSSortDescriptor(key: "text", ascending: true)]
-//        loadItems(with: request)
-//    }
-//
-//    func searchBar(_ searchBar: UISearchBar, textDidChange searchText: String) {
-//        if searchBar.text?.count == 0 {
-//            loadItems()
-//            DispatchQueue.main.async {
-//                searchBar.resignFirstResponder()
-//            }
-//
-//        }
-//    }
-//}
+extension ToDoListViewController: UISearchBarDelegate {
+    func searchBarSearchButtonClicked(_ searchBar: UISearchBar) {
+        choosenCategoryItems = choosenCategoryItems?.filter("text CONTAINS[cd] %@",searchBar.text!).sorted(byKeyPath: "dateCreated")
+        tableView.reloadData()
+    }
+    
+    func searchBar(_ searchBar: UISearchBar, textDidChange searchText: String) {
+        if searchBar.text?.count == 0 {
+            loadItems()
+            DispatchQueue.main.async {
+                searchBar.resignFirstResponder()
+            }
+            
+        }
+    }
+}
 
-//func loadItems(with request: NSFetchRequest<Item> = Item.fetchRequest(), predicate: NSPredicate? = nil) {
-//
-//    let categoryPredicate = NSPredicate(format: "parentCategory.cat MATCHES %@", self.selectedCategory!.cat!)
-//
-//    if let additionalPredicate = predicate {
-//        request.predicate = NSCompoundPredicate(andPredicateWithSubpredicates: [categoryPredicate,additionalPredicate])
-//    } else {
-//        request.predicate = categoryPredicate
-//    }
-//
-//    do {
-//        itemArray  = try context.fetch(request)
-//    } catch {
-//        print(error)
-//    }
-//    tableView.reloadData()
-//}
 
 //
 
